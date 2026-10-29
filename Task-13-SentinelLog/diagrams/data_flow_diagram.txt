@@ -1,0 +1,33 @@
+       SENTINELLOG — DATA FLOW DIAGRAM
+
+     +---------------------------+
+     | Synthetic Authentication  |
+     | Logs (sample_logs.csv)    |
+     +---------------------------+
+                  |
+                  v
+     +---------------------------+
+     | Log Analyzer              |
+     | log_analyzer.py           |
+     +---------------------------+
+                  |
+                  v
+     +---------------------------+
+     | Detection Rules           |
+     |                           |
+     | 1. Repeated failed logins |
+     | 2. Failed logins followed |
+     |    by successful login    |
+     +---------------------------+
+                  |
+                  v
+     +---------------------------+
+     | Alert Generation          |
+     | Severity and Details      |
+     +---------------------------+
+                  |
+                  v
+     +---------------------------+
+     | Alerts Report             |
+     | outputs/alerts.csv        |
+     +---------------------------+
