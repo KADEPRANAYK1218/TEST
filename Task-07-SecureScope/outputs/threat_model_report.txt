@@ -1,0 +1,156 @@
+======================================================================
+SecureScope - Threat Model Report: QuickCart
+======================================================================
+A fictional e-commerce web application. Customers browse a product catalog, add items to a cart, authenticate, check out via a third-party payment gateway, and view order history. An internal admin panel lets staff manage inventory and view orders.
+
+----------------------------------------------------------------------
+ASSETS (by sensitivity)
+----------------------------------------------------------------------
+  [Critical] A3: Payment data / payment tokens
+  [Critical] A6: Admin credentials & privileges
+  [High    ] A1: Customer credentials (passwords/session tokens)
+  [High    ] A2: Customer PII (name, address, email, phone)
+  [Medium  ] A4: Order history & business data
+  [Medium  ] A7: Application logs (may contain sensitive metadata)
+  [Low     ] A5: Product catalog & pricing
+
+----------------------------------------------------------------------
+TRUST BOUNDARIES
+----------------------------------------------------------------------
+  tb1: Internet <-> QuickCart Perimeter
+  tb2: Internet <-> Admin Perimeter (should be restricted network/VPN)
+  tb3: QuickCart <-> Third-Party Payment Gateway
+  tb4: App Tier <-> Data Tier
+
+----------------------------------------------------------------------
+PRIORITIZED THREATS (STRIDE)  -  21 total
+----------------------------------------------------------------------
+Risk breakdown: High=7, Medium=9, Low=5
+
+[HIGH] T001 - Spoofing
+    Flow        : Customer Web Browser -> Web/API Server (QuickCart App) (Login credentials, browsing/checkout requests)
+    Likelihood  : 2/3   Impact: 3/3
+    Threat      : An attacker could spoof a legitimate Customer Web Browser by stealing or guessing credentials used in the flow to Web/API Server (QuickCart App), impersonating a real user or admin.
+    Mitigation  : Enforce MFA for admin and customer accounts, use short-lived signed session tokens, rate-limit login attempts, and bind sessions to device/IP heuristics.
+
+[HIGH] T003 - Information Disclosure
+    Flow        : Customer Web Browser -> Web/API Server (QuickCart App) (Login credentials, browsing/checkout requests)
+    Likelihood  : 2/3   Impact: 3/3
+    Threat      : Sensitive data (Login credentials, browsing/checkout requests) flowing between Customer Web Browser and Web/API Server (QuickCart App) could be exposed via interception, misconfigured access controls, or verbose logging/error messages.
+    Mitigation  : Encrypt sensitive data at rest and in transit, apply least-privilege DB access, never store raw payment data (use the gateway's tokenization), and scrub PII from logs and error messages.
+
+[HIGH] T006 - Information Disclosure
+    Flow        : Web/API Server (QuickCart App) -> Orders & Customer Database (Order creation/read, customer PII)
+    Likelihood  : 2/3   Impact: 3/3
+    Threat      : Sensitive data (Order creation/read, customer PII) flowing between Web/API Server (QuickCart App) and Orders & Customer Database could be exposed via interception, misconfigured access controls, or verbose logging/error messages.
+    Mitigation  : Encrypt sensitive data at rest and in transit, apply least-privilege DB access, never store raw payment data (use the gateway's tokenization), and scrub PII from logs and error messages.
+
+[HIGH] T007 - Information Disclosure
+    Flow        : Web/API Server (QuickCart App) -> Third-Party Payment Gateway (e.g., Stripe-like) (Payment tokenization request (card data should NOT transit here directly))
+    Likelihood  : 2/3   Impact: 3/3
+    Threat      : Sensitive data (Payment tokenization request (card data should NOT transit here directly)) flowing between Web/API Server (QuickCart App) and Third-Party Payment Gateway (e.g., Stripe-like) could be exposed via interception, misconfigured access controls, or verbose logging/error messages.
+    Mitigation  : Encrypt sensitive data at rest and in transit, apply least-privilege DB access, never store raw payment data (use the gateway's tokenization), and scrub PII from logs and error messages.
+
+[HIGH] T008 - Information Disclosure
+    Flow        : Third-Party Payment Gateway (e.g., Stripe-like) -> Web/API Server (QuickCart App) (Payment confirmation / token / webhook)
+    Likelihood  : 2/3   Impact: 3/3
+    Threat      : Sensitive data (Payment confirmation / token / webhook) flowing between Third-Party Payment Gateway (e.g., Stripe-like) and Web/API Server (QuickCart App) could be exposed via interception, misconfigured access controls, or verbose logging/error messages.
+    Mitigation  : Encrypt sensitive data at rest and in transit, apply least-privilege DB access, never store raw payment data (use the gateway's tokenization), and scrub PII from logs and error messages.
+
+[HIGH] T010 - Spoofing
+    Flow        : Admin Staff Browser -> Internal Admin Panel (Admin login, inventory edits, order lookups)
+    Likelihood  : 2/3   Impact: 3/3
+    Threat      : An attacker could spoof a legitimate Admin Staff Browser by stealing or guessing credentials used in the flow to Internal Admin Panel, impersonating a real user or admin.
+    Mitigation  : Enforce MFA for admin and customer accounts, use short-lived signed session tokens, rate-limit login attempts, and bind sessions to device/IP heuristics.
+
+[HIGH] T017 - Information Disclosure
+    Flow        : Internal Admin Panel -> Orders & Customer Database (Read/write order & customer data)
+    Likelihood  : 2/3   Impact: 3/3
+    Threat      : Sensitive data (Read/write order & customer data) flowing between Internal Admin Panel and Orders & Customer Database could be exposed via interception, misconfigured access controls, or verbose logging/error messages.
+    Mitigation  : Encrypt sensitive data at rest and in transit, apply least-privilege DB access, never store raw payment data (use the gateway's tokenization), and scrub PII from logs and error messages.
+
+[MEDIUM] T004 - Denial of Service
+    Flow        : Customer Web Browser -> Web/API Server (QuickCart App) (Login credentials, browsing/checkout requests)
+    Likelihood  : 2/3   Impact: 2/3
+    Threat      : Web/API Server (QuickCart App) is reachable from Customer Web Browser and could be overwhelmed by high-volume or malformed requests (e.g., credential-stuffing bursts, large payloads).
+    Mitigation  : Apply rate limiting / WAF rules at the perimeter, use CAPTCHA after repeated failures, set request size limits, and enable autoscaling with circuit breakers.
+
+[MEDIUM] T009 - Denial of Service
+    Flow        : Third-Party Payment Gateway (e.g., Stripe-like) -> Web/API Server (QuickCart App) (Payment confirmation / token / webhook)
+    Likelihood  : 2/3   Impact: 2/3
+    Threat      : Web/API Server (QuickCart App) is reachable from Third-Party Payment Gateway (e.g., Stripe-like) and could be overwhelmed by high-volume or malformed requests (e.g., credential-stuffing bursts, large payloads).
+    Mitigation  : Apply rate limiting / WAF rules at the perimeter, use CAPTCHA after repeated failures, set request size limits, and enable autoscaling with circuit breakers.
+
+[MEDIUM] T011 - Tampering
+    Flow        : Admin Staff Browser -> Internal Admin Panel (Admin login, inventory edits, order lookups)
+    Likelihood  : 2/3   Impact: 2/3
+    Threat      : Data in transit or at rest between Admin Staff Browser and Internal Admin Panel (Admin login, inventory edits, order lookups) could be tampered with if integrity controls (TLS, signed requests, DB constraints) are weak.
+    Mitigation  : Use TLS 1.2+ everywhere, validate/sanitize all inputs server-side, apply parameterized queries, and enforce DB-level constraints and request signing for admin writes.
+
+[MEDIUM] T013 - Denial of Service
+    Flow        : Admin Staff Browser -> Internal Admin Panel (Admin login, inventory edits, order lookups)
+    Likelihood  : 2/3   Impact: 2/3
+    Threat      : Internal Admin Panel is reachable from Admin Staff Browser and could be overwhelmed by high-volume or malformed requests (e.g., credential-stuffing bursts, large payloads).
+    Mitigation  : Apply rate limiting / WAF rules at the perimeter, use CAPTCHA after repeated failures, set request size limits, and enable autoscaling with circuit breakers.
+
+[MEDIUM] T014 - Elevation of Privilege
+    Flow        : Admin Staff Browser -> Internal Admin Panel (Admin login, inventory edits, order lookups)
+    Likelihood  : 1/3   Impact: 3/3
+    Threat      : A regular authenticated user, or an attacker who compromises Admin Staff Browser, could attempt to reach Internal Admin Panel and perform admin-only actions if authorization checks are missing or inconsistently enforced server-side.
+    Mitigation  : Enforce server-side authorization checks (not just UI hiding) on every admin endpoint, use role-based access control, and isolate the admin panel on a separate network path with its own auth.
+
+[MEDIUM] T015 - Tampering
+    Flow        : Internal Admin Panel -> Orders & Customer Database (Read/write order & customer data)
+    Likelihood  : 2/3   Impact: 2/3
+    Threat      : Data in transit or at rest between Internal Admin Panel and Orders & Customer Database (Read/write order & customer data) could be tampered with if integrity controls (TLS, signed requests, DB constraints) are weak.
+    Mitigation  : Use TLS 1.2+ everywhere, validate/sanitize all inputs server-side, apply parameterized queries, and enforce DB-level constraints and request signing for admin writes.
+
+[MEDIUM] T018 - Elevation of Privilege
+    Flow        : Internal Admin Panel -> Orders & Customer Database (Read/write order & customer data)
+    Likelihood  : 1/3   Impact: 3/3
+    Threat      : A regular authenticated user, or an attacker who compromises Internal Admin Panel, could attempt to reach Orders & Customer Database and perform admin-only actions if authorization checks are missing or inconsistently enforced server-side.
+    Mitigation  : Enforce server-side authorization checks (not just UI hiding) on every admin endpoint, use role-based access control, and isolate the admin panel on a separate network path with its own auth.
+
+[MEDIUM] T019 - Tampering
+    Flow        : Internal Admin Panel -> Product Catalog Database (Inventory updates)
+    Likelihood  : 2/3   Impact: 2/3
+    Threat      : Data in transit or at rest between Internal Admin Panel and Product Catalog Database (Inventory updates) could be tampered with if integrity controls (TLS, signed requests, DB constraints) are weak.
+    Mitigation  : Use TLS 1.2+ everywhere, validate/sanitize all inputs server-side, apply parameterized queries, and enforce DB-level constraints and request signing for admin writes.
+
+[MEDIUM] T021 - Elevation of Privilege
+    Flow        : Internal Admin Panel -> Product Catalog Database (Inventory updates)
+    Likelihood  : 1/3   Impact: 3/3
+    Threat      : A regular authenticated user, or an attacker who compromises Internal Admin Panel, could attempt to reach Product Catalog Database and perform admin-only actions if authorization checks are missing or inconsistently enforced server-side.
+    Mitigation  : Enforce server-side authorization checks (not just UI hiding) on every admin endpoint, use role-based access control, and isolate the admin panel on a separate network path with its own auth.
+
+[LOW] T002 - Repudiation
+    Flow        : Customer Web Browser -> Web/API Server (QuickCart App) (Login credentials, browsing/checkout requests)
+    Likelihood  : 1/3   Impact: 2/3
+    Threat      : A user or admin could deny having performed an action affecting Login credentials, browsing/checkout requests if Web/API Server (QuickCart App) does not keep tamper-evident audit logs tied to an identity.
+    Mitigation  : Emit structured, append-only audit logs (who/what/when) tied to authenticated identity for every state-changing action; protect logs from tampering.
+
+[LOW] T005 - Repudiation
+    Flow        : Web/API Server (QuickCart App) -> Orders & Customer Database (Order creation/read, customer PII)
+    Likelihood  : 1/3   Impact: 2/3
+    Threat      : A user or admin could deny having performed an action affecting Order creation/read, customer PII if Orders & Customer Database does not keep tamper-evident audit logs tied to an identity.
+    Mitigation  : Emit structured, append-only audit logs (who/what/when) tied to authenticated identity for every state-changing action; protect logs from tampering.
+
+[LOW] T012 - Repudiation
+    Flow        : Admin Staff Browser -> Internal Admin Panel (Admin login, inventory edits, order lookups)
+    Likelihood  : 1/3   Impact: 2/3
+    Threat      : A user or admin could deny having performed an action affecting Admin login, inventory edits, order lookups if Internal Admin Panel does not keep tamper-evident audit logs tied to an identity.
+    Mitigation  : Emit structured, append-only audit logs (who/what/when) tied to authenticated identity for every state-changing action; protect logs from tampering.
+
+[LOW] T016 - Repudiation
+    Flow        : Internal Admin Panel -> Orders & Customer Database (Read/write order & customer data)
+    Likelihood  : 1/3   Impact: 2/3
+    Threat      : A user or admin could deny having performed an action affecting Read/write order & customer data if Orders & Customer Database does not keep tamper-evident audit logs tied to an identity.
+    Mitigation  : Emit structured, append-only audit logs (who/what/when) tied to authenticated identity for every state-changing action; protect logs from tampering.
+
+[LOW] T020 - Repudiation
+    Flow        : Internal Admin Panel -> Product Catalog Database (Inventory updates)
+    Likelihood  : 1/3   Impact: 2/3
+    Threat      : A user or admin could deny having performed an action affecting Inventory updates if Product Catalog Database does not keep tamper-evident audit logs tied to an identity.
+    Mitigation  : Emit structured, append-only audit logs (who/what/when) tied to authenticated identity for every state-changing action; protect logs from tampering.
+
+======================================================================
