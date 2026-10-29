@@ -1,0 +1,16 @@
+============================================================
+SentinelLog - Authentication Log Summary
+============================================================
+Time window        : 2026-10-28 09:01:02  ->  2026-10-28 09:45:05
+Total events        : 25
+Successful logins   : 8
+Failed logins       : 17
+Unique source IPs   : 8
+Unique usernames    : 9
+
+-- Brute-force-pattern IPs (>= threshold failures) --
+  [FLAGGED] 203.0.113.77     failures=11
+
+-- Accounts with success after 3+ consecutive failures --
+  [SUSPICIOUS] user=bob        failures_before_success=3 success_at=2026-10-28 09:03:30 from=10.0.0.9
+============================================================
