@@ -1,0 +1,44 @@
+{
+  "application": {
+    "name": "QuickCart",
+    "description": "A fictional e-commerce web application. Customers browse a product catalog, add items to a cart, authenticate, check out via a third-party payment gateway, and view order history. An internal admin panel lets staff manage inventory and view orders.",
+    "components": [
+      {"id": "web_client", "name": "Customer Web Browser", "type": "external_entity"},
+      {"id": "admin_client", "name": "Admin Staff Browser", "type": "external_entity"},
+      {"id": "web_app", "name": "Web/API Server (QuickCart App)", "type": "process"},
+      {"id": "auth_service", "name": "Authentication Service (sessions, login)", "type": "process"},
+      {"id": "order_db", "name": "Orders & Customer Database", "type": "data_store"},
+      {"id": "product_db", "name": "Product Catalog Database", "type": "data_store"},
+      {"id": "payment_gateway", "name": "Third-Party Payment Gateway (e.g., Stripe-like)", "type": "external_entity"},
+      {"id": "admin_panel", "name": "Internal Admin Panel", "type": "process"},
+      {"id": "log_store", "name": "Application Logs", "type": "data_store"}
+    ],
+    "data_flows": [
+      {"from": "web_client", "to": "web_app", "data": "Login credentials, browsing/checkout requests", "crosses_trust_boundary": true},
+      {"from": "web_app", "to": "auth_service", "data": "Credential verification, session issuance", "crosses_trust_boundary": false},
+      {"from": "web_app", "to": "product_db", "data": "Product queries", "crosses_trust_boundary": true},
+      {"from": "web_app", "to": "order_db", "data": "Order creation/read, customer PII", "crosses_trust_boundary": true},
+      {"from": "web_app", "to": "payment_gateway", "data": "Payment tokenization request (card data should NOT transit here directly)", "crosses_trust_boundary": true},
+      {"from": "payment_gateway", "to": "web_app", "data": "Payment confirmation / token / webhook", "crosses_trust_boundary": true},
+      {"from": "admin_client", "to": "admin_panel", "data": "Admin login, inventory edits, order lookups", "crosses_trust_boundary": true},
+      {"from": "admin_panel", "to": "order_db", "data": "Read/write order & customer data", "crosses_trust_boundary": true},
+      {"from": "admin_panel", "to": "product_db", "data": "Inventory updates", "crosses_trust_boundary": true},
+      {"from": "web_app", "to": "log_store", "data": "Request/auth/error logs", "crosses_trust_boundary": false}
+    ],
+    "trust_boundaries": [
+      {"id": "tb1", "name": "Internet <-> QuickCart Perimeter", "between": ["web_client", "web_app"]},
+      {"id": "tb2", "name": "Internet <-> Admin Perimeter (should be restricted network/VPN)", "between": ["admin_client", "admin_panel"]},
+      {"id": "tb3", "name": "QuickCart <-> Third-Party Payment Gateway", "between": ["web_app", "payment_gateway"]},
+      {"id": "tb4", "name": "App Tier <-> Data Tier", "between": ["web_app", "order_db"]}
+    ]
+  },
+  "assets": [
+    {"id": "A1", "name": "Customer credentials (passwords/session tokens)", "sensitivity": "High"},
+    {"id": "A2", "name": "Customer PII (name, address, email, phone)", "sensitivity": "High"},
+    {"id": "A3", "name": "Payment data / payment tokens", "sensitivity": "Critical"},
+    {"id": "A4", "name": "Order history & business data", "sensitivity": "Medium"},
+    {"id": "A5", "name": "Product catalog & pricing", "sensitivity": "Low"},
+    {"id": "A6", "name": "Admin credentials & privileges", "sensitivity": "Critical"},
+    {"id": "A7", "name": "Application logs (may contain sensitive metadata)", "sensitivity": "Medium"}
+  ]
+}
