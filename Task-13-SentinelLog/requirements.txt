@@ -1,0 +1,3 @@
+# Task 13 - SentinelLog
+# Uses only the Python standard library (csv, re, collections, unittest).
+# No third-party packages required. Python 3.8+ recommended.
