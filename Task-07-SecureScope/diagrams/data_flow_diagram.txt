@@ -1,0 +1,26 @@
+DATA FLOW DIAGRAM (simplified, text form)
+
+  [Customer Browser]                [Admin Staff Browser]
+         |  (tb1: Internet)                 |  (tb2: Internet/VPN)
+         v                                  v
+  +------------------+              +-------------------+
+  |   Web/API Server  |<------------>|   Admin Panel     |
+  |   (QuickCart App) |              +-------------------+
+  +------------------+
+     |     |      |
+     |     |      | (tb3: 3rd-party)
+     |     |      v
+     |     |   +----------------------+
+     |     |   |  Payment Gateway (3P) |
+     |     |   +----------------------+
+     |     v
+     |  +------------------------+   (tb4: app<->data)
+     |  | Orders & Customer DB    |
+     |  +------------------------+
+     v
+  +------------------------+
+  | Product Catalog DB      |
+  +------------------------+
+
+  Trust boundaries (tb1-tb4) mark where data crosses from a less-trusted
+  zone into a more-trusted one; every crossing is analyzed for STRIDE threats.
