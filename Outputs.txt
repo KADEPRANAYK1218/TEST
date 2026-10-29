@@ -1,0 +1,12 @@
+How to run it
+Extract the ZIP, open the PranayKumar-Security-Tasks-internship gitHub folder in VS Code  and open a terminal.
+
+Task 13 — SentinelLog
+cd Task-13-SentinelLog
+python app.py
+python -m unittest test_log_analyzer.py -v
+
+Task 7 — SecureScope
+cd Task-07-SecureScope
+python app.py
+python -m unittest test_risk_assessment.py -v
